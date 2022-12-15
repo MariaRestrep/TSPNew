@@ -9,7 +9,7 @@ from model_weekly import *
 from branch_and_cut import *
 from arguments import *
 from pricing import *
-from grammars import *
+#from grammars import *
 from grammars_2 import *
 
 # default shifts and patterns parameters (values are changed after reading arguments)
