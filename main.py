@@ -25,6 +25,8 @@ external_cost_agglo = external_cost_intra * agglo_ext_cost_coef
 pattern_fixed_cost = 0  # fixed cost of assigning a pattern
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+#yoyoyoyoyo
+
 SEED = 1 # seed to assign the same vehicles to couriers at each run
 
 COLLECTION = "COLLECTION"
