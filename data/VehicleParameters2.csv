@@ -1,0 +1,5 @@
+vehicle_id,vehicleType,maxWeightCapacity,maxSpeed,vehicleWearCost,pickupCost,deliveryCost
+Fourgon1,FOURGON,90,90,0.5,1.5,1.5
+Moto1,MOTO,5,90,0.15,0.5,0.5
+Utilitaire1,UTILITAIRE,30,90,0.35,1.5,1.5
+Voiture1,VOITURE,30,90,0.35,1.5,1.5
