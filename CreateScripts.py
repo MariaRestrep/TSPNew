@@ -68,7 +68,7 @@ if __name__ == "__main__":
     
     Packages = [ 50 ]# "EMP"]# "ZINB"]
 
-    Distribution = ["-n"]
+    Distribution = ["-u"]
 
     filenewname = "runtestOpt.sh"
     filenew = open(filenewname, 'w')
