@@ -4,9 +4,7 @@ import numpy
 from grammars_2 import *
 from docplex.mp.model import Model
 from docplex.mp.callbacks.cb_mixin import *
-import cplex as cp
-#from cplex.callbacks import LazyConstraintCallback
-from cplex import *
+from cplex.callbacks import LazyConstraintCallback
 from timer import Timer
 
 ti = Timer()
@@ -15,7 +13,7 @@ DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sun
 min_pattern_length = 32
 max_pattern_length = 40
 
-class BacCallback(ConstraintCallbackMixin, cp.callbacks.LazyConstraintCallback):
+class BacCallback(ConstraintCallbackMixin, LazyConstraintCallback):
     def __init__(self, env):
         LazyConstraintCallback.__init__(self, env)
         ConstraintCallbackMixin.__init__(self)
