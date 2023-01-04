@@ -5,10 +5,10 @@ import os
 def create_bench_dir(bench_dir, instance_size, instance_number, distribution, variability):
 
     current_bench_dir="{}/{}/{}/".format(bench_dir, instance_size, distribution)
-    instance_name="instance_{}".format(instance_number)
-    if instance_name not in os.listdir(current_bench_dir):
-        os.mkdir(current_bench_dir+instance_name)
-    current_bench_dir+="instance_{}/".format(instance_number)
+    # instance_name="instance_{}".format(instance_number)
+    # if instance_name not in os.listdir(current_bench_dir):
+    #     os.mkdir(current_bench_dir+instance_name)
+    # current_bench_dir+="instance_{}/".format(instance_number)
     return current_bench_dir
 
 
