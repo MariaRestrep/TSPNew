@@ -7,8 +7,6 @@ from docplex.mp.model import Model
 # parameters: data a prob_data object containing the parsed data
 #			  nb_days, nb_timesperiods, external_cost_intra, external_cost_agglo, pattern_fixed_cost
 class model_parameters_weekly:
-
-
     def __init__(self, data, nb_days, nb_time_periods, external_cost_intra, external_cost_agglo,
                  pattern_fixed_cost=0):
         self.data = data

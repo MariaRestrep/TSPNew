@@ -458,7 +458,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     except Exception as e:
         #print("Error while decomposing costs")
         #print(e)
-        problem.fix=problem.the=-1
+        problem.fix=problem.the = -1
     if decomp_costs:
         try:
             var, ext = decompose_subproblems_costs(param, problem, sub_problems)
@@ -474,10 +474,10 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         print("Objective:", problem.objective_value)
     except:
         print("Problem did not solved successfully")
-    try:
+
         #print("computing nb working couriers")
 
-        problem.nb_working_couriers = 0
+
         # for var in problem.iter_variables():
         #     if var.name[0] == "X" and var.solution_value>=0.999:
         #         nb_working_couriers+=1
@@ -487,61 +487,76 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         # print(nb_working_couriers)
         # exit(1)
 
-        print("*************************** Solution ***************************")
+        problem.max_tour_l = 0
+        problem.min_tour_l = 0
+        problem.average_tour_l = 0
 
-        x_sol=[0]*len(param.C)
-        for c in param.C:
-            x_sol[c] = [0] * len(param.D)
-            for d in param.D:
-                x_sol[c][d] = [0] * len(param.data.shifts)
+    print("*************************** Solution ***************************")
 
-        for var in problem.iter_variables():
-            if var.type == "X":
-                c, d, s = var.get_key()
-                x_sol[c][d][s]=var.solution_value
+    x_sol=[0]*len(param.C)
+    for c in param.C:
+        x_sol[c] = [0] * len(param.D)
+        for d in param.D:
+            x_sol[c][d] = [0] * len(param.data.shifts)
 
-        #check for min rest time
-        cost_shifts=0
-        min_tour_l = len(param.D) * 10
-        max_tour_l = 0
-        average_tour_l = 0.0
+    # for c in param.C:
+    #     for d in param.D:
+    #         for s in range(len(param.data.shifts)):
+    #             #print(c,d,s)
+    #             x_sol[c][d][s] = problem.x[c, d, s].solution_value
+    #             print(c, d, s, problem.x[c, d, s].solution_value, x_sol[c][d][s])
+
+    for var in problem.iter_variables():
+        if var.type == "X":
+            c, d, s = var.get_key()
+            x_sol[c][d][s] = var.solution_value
+            # if var.solution_value>0:
+            #     print(c, d, s, var.solution_value)
 
 
-        print("Shift allocation:")
-        for c in param.C:
-            lenght_tour = 0
-            print("Employee: ", c, end='[ ')
-            for d in param.D:
-                enter = False
-                for s in range(len(param.data.shifts)):
-                    #print("shift", s, "day", d)
-                    if (x_sol[c][d][s] > 0):
-                        enter = True
-                        #print("employee ", c, " lenght of shift ", param.data.shifts[s].workTime, " shift: ", s, " day: ", d)
-                        print(s, end=',')
-                        lenght_tour += param.data.shifts[s].workTime
-                        cost_shifts += param.data.shifts[s].cost
-                if enter == False:
-                    print("r", end=',')
-            print("] lenght tour: ", lenght_tour)
 
-            average_tour_l+=lenght_tour
+    #check for min rest time
+    cost_shifts=0
+    min_tour_l = len(param.D) * 10
+    max_tour_l = 0
+    average_tour_l = 0.0
 
-            if(lenght_tour < min_tour_l):
-                min_tour_l = lenght_tour
+    print("Shift allocation:")
+    for c in param.C:
+        lenght_tour = 0
+        print("Employee: ", c, end='[ ')
+        for d in param.D:
+            enter = False
+            for s in range(len(param.data.shifts)):
+                #print("shift", s, "day", d)
+                if (x_sol[c][d][s] > 0):
+                    enter = True
+                    #print("employee ", c, " lenght of shift ", param.data.shifts[s].workTime, " shift: ", s, " day: ", d)
+                    print(s, end=',')
+                    lenght_tour += param.data.shifts[s].workTime
+                    cost_shifts += param.data.shifts[s].cost
+            if enter == False:
+                print("r", end=',')
+        print("] lenght tour: ", lenght_tour)
 
-            if (lenght_tour > max_tour_l):
-                max_tour_l = lenght_tour
+        average_tour_l+=lenght_tour
 
-        average_tour_l = average_tour_l/len(param.C)
+        if(lenght_tour < min_tour_l):
+            min_tour_l = lenght_tour
 
-        print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l)
+        if (lenght_tour > max_tour_l):
+            max_tour_l = lenght_tour
 
-        problem.max_tour_l = max_tour_l
-        problem.min_tour_l = min_tour_l
-        problem.average_tour_l = average_tour_l
-    except:
-        pass
+    average_tour_l = average_tour_l/len(param.C)
+
+    print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l)
+
+    problem.max_tour_l = max_tour_l
+    problem.min_tour_l = min_tour_l
+    problem.average_tour_l = average_tour_l
+
+    problem.nb_working_couriers = 0
+
     #ti.print_ti()
     problem.timer=ti
     return problem

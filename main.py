@@ -1,5 +1,5 @@
 # contains the classes and functions to parse the data plus some functions to execute the arguments parsed from arguments.py
-import copy
+
 import numpy as np
 import pandas as pd
 import math
@@ -207,26 +207,26 @@ class ProbData:
 
         return self.od_pairs[-1]
 
-    # def generate_couriers(self, nb_couriers, full_avail=False):
-    #     data.employees=[]
-    #     random.seed(SEED)
-    #     for i in range(int(nb_couriers)):
-    #         start_availability = MIN_HOUR
-    #         end_availability = MAX_HOUR
-    #         availability_duration = random.choice(AVAILABILITIES_DURATION)
-    #         if full_avail: availability_duration = NB_TIME_PERIODS
-    #         if end_availability-availability_duration > 0:
-    #             start_availability = random.choice(range(start_availability, 2+end_availability-availability_duration, 2))
-    #         else:
-    #             start_availability = 0
-    #         end_availability = start_availability + availability_duration - 1
-    #         veh = random.choice(data.vehicles)
-    #         var_cost = veh.pickupCost + veh.deliveryCost
-    #         data.add_employee(id_employee=i, id_vehicle=veh.id_vehicle,
-    #                           start_availability=start_availability,
-    #                           end_availability=end_availability, fixed_cost=fixed_cost+veh.vehicleWearCost,
-    #                           var_cost_intra=var_cost, var_cost_aglo=var_cost * agglo_var_cost_coef,
-    #                           capacity=veh.maxWeight)
+    def generate_couriers(self, nb_couriers, full_avail=False):
+        data.employees=[]
+        random.seed(SEED)
+        for i in range(int(nb_couriers)):
+            start_availability = MIN_HOUR
+            end_availability = MAX_HOUR
+            availability_duration = random.choice(AVAILABILITIES_DURATION)
+            if full_avail: availability_duration = NB_TIME_PERIODS
+            if end_availability-availability_duration > 0:
+                start_availability = random.choice(range(start_availability, 2+end_availability-availability_duration, 2))
+            else:
+                start_availability = 0
+            end_availability = start_availability + availability_duration - 1
+            veh = random.choice(data.vehicles)
+            var_cost = veh.pickupCost + veh.deliveryCost
+            data.add_employee(id_employee=i, id_vehicle=veh.id_vehicle,
+                              start_availability=start_availability,
+                              end_availability=end_availability, fixed_cost=fixed_cost+veh.vehicleWearCost,
+                              var_cost_intra=var_cost, var_cost_aglo=var_cost * agglo_var_cost_coef,
+                              capacity=veh.maxWeight)
 
 #This is to run several instances
 def run_bac(args, timeout, epsilon_tolerance, obj_tolerance, abs_obj_tolerance, current_bench_dir):
@@ -262,7 +262,7 @@ def execute_arguments(args):
     obj_tolerance=1e-04*args.gap
     abs_obj_tolerance=1e-06*args.gap
 
-    #data.generate_couriers(NB_COURIERS, full_avail=FULL_AVAILABILITY)
+    data.generate_couriers(NB_COURIERS, full_avail=FULL_AVAILABILITY)
 
     pattern_generation_time=time.time()
 
@@ -292,23 +292,28 @@ def execute_arguments(args):
     if args.rec:
         #print("ENTER RECOURSE PROBLEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         # per day resolution + heuristic repair + bac recourse problem
-        model, per_day_time, per_day_obj, per_day_fix_cost, per_day_var_cost, per_day_ext_cost, repair_obj = run_bac(args,
+        model_cplex, per_day_time, per_day_obj, per_day_fix_cost, per_day_var_cost, per_day_ext_cost, repair_obj = run_bac(args,
             timeout, epsilon_tolerance, obj_tolerance, abs_obj_tolerance, current_bench_dir)
-        ti=model.timer
-        mov=model.objective_value
-        mf=model.fix
-        mv=model.v_cost
-        me=model.e_cost
-        mnwc=model.nb_working_couriers
-        max_tour_l = model.max_tour_l
-        min_tour_l = model.min_tour_l
-        average_tour_l = model.average_tour_l
-        
+        ti=model_cplex.timer
+        mov=model_cplex.objective_value
+        mf=model_cplex.fix
+        mv=model_cplex.v_cost
+        me=model_cplex.e_cost
+        mnwc = model_cplex.nb_working_couriers
+        # max_tour_l = model_cplex.max_tour_l
+        # min_tour_l = model_cplex.min_tour_l
+        # average_tour_l = model_cplex.average_tour_l
+
+        max_tour_l = 0
+        min_tour_l = 0
+        average_tour_l = 0
+
         data_list+=[per_day_time, per_day_obj, per_day_fix_cost, per_day_var_cost, per_day_ext_cost, repair_obj,
                 epsilon_tolerance, obj_tolerance, ti.TOTAL_TIME, ti.TIME_DEFINING_MASTER,
-                    ti.TOTAL_TIME_REACHING_TOLERANCE, ti.TOTAL_TIME_BB, model.solve_details.gap,
+                    ti.TOTAL_TIME_REACHING_TOLERANCE, ti.TOTAL_TIME_BB, model_cplex.solve_details.gap,
                     mov, mf, mv, me, mnwc, max_tour_l, min_tour_l, average_tour_l]
-        del model
+
+        del model_cplex
         # mean value problem solved + recourse problem with mean value first stage decisions
         mean_bac_time, mean_bac_gap, mean_rec_obj, mean_rec_fix, mean_rec_var, mean_rec_ext = (-1, -1, -1, -1, -1, -1)
 
@@ -344,7 +349,6 @@ if __name__ == "__main__":
     if args.hi: variability="high_var"
 
     instance_dir="{}{}/{}/instance_{}/".format(instances_dir, isize, distribution, inb)
-
 
     #TODO: remove the comment, this is just to test the two models
     #TODO: check the computation of the mean value problem
