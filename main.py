@@ -23,7 +23,6 @@ external_cost_agglo = external_cost_intra * agglo_ext_cost_coef
 pattern_fixed_cost = 0  # fixed cost of assigning a pattern
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-
 SEED = 1 # seed to assign the same vehicles to couriers at each run
 
 COLLECTION = "COLLECTION"
@@ -171,7 +170,7 @@ class ProbData:
         self.od_pairs_generated = {}
         self.patterns = []
 
-    #TODO: change vehicles
+
     def add_vehicle(self, id_vehicle, idVS, name, maxWeight, maxHeight, avSpeed, threshold, vehicleWearCost,
                  pickupCost, deliveryCost):
         self.vehicles.append(TypeVehicle(id_vehicle, idVS, name, maxWeight, maxHeight, avSpeed, threshold, vehicleWearCost,
@@ -208,26 +207,26 @@ class ProbData:
 
         return self.od_pairs[-1]
 
-    def generate_couriers(self, nb_couriers, full_avail=False):
-        data.employees=[]
-        random.seed(SEED)
-        for i in range(int(nb_couriers)):
-            start_availability = MIN_HOUR
-            end_availability = MAX_HOUR
-            availability_duration = random.choice(AVAILABILITIES_DURATION)
-            if full_avail: availability_duration = NB_TIME_PERIODS
-            if end_availability-availability_duration > 0:
-                start_availability = random.choice(range(start_availability, 2+end_availability-availability_duration, 2))
-            else:
-                start_availability = 0
-            end_availability = start_availability + availability_duration - 1
-            veh = random.choice(data.vehicles)
-            var_cost = veh.pickupCost + veh.deliveryCost
-            data.add_employee(id_employee=i, id_vehicle=veh.id_vehicle,
-                              start_availability=start_availability,
-                              end_availability=end_availability, fixed_cost=fixed_cost+veh.vehicleWearCost,
-                              var_cost_intra=var_cost, var_cost_aglo=var_cost * agglo_var_cost_coef,
-                              capacity=veh.maxWeight)
+    # def generate_couriers(self, nb_couriers, full_avail=False):
+    #     data.employees=[]
+    #     random.seed(SEED)
+    #     for i in range(int(nb_couriers)):
+    #         start_availability = MIN_HOUR
+    #         end_availability = MAX_HOUR
+    #         availability_duration = random.choice(AVAILABILITIES_DURATION)
+    #         if full_avail: availability_duration = NB_TIME_PERIODS
+    #         if end_availability-availability_duration > 0:
+    #             start_availability = random.choice(range(start_availability, 2+end_availability-availability_duration, 2))
+    #         else:
+    #             start_availability = 0
+    #         end_availability = start_availability + availability_duration - 1
+    #         veh = random.choice(data.vehicles)
+    #         var_cost = veh.pickupCost + veh.deliveryCost
+    #         data.add_employee(id_employee=i, id_vehicle=veh.id_vehicle,
+    #                           start_availability=start_availability,
+    #                           end_availability=end_availability, fixed_cost=fixed_cost+veh.vehicleWearCost,
+    #                           var_cost_intra=var_cost, var_cost_aglo=var_cost * agglo_var_cost_coef,
+    #                           capacity=veh.maxWeight)
 
 #This is to run several instances
 def run_bac(args, timeout, epsilon_tolerance, obj_tolerance, abs_obj_tolerance, current_bench_dir):
@@ -263,7 +262,7 @@ def execute_arguments(args):
     obj_tolerance=1e-04*args.gap
     abs_obj_tolerance=1e-06*args.gap
 
-    data.generate_couriers(NB_COURIERS, full_avail=FULL_AVAILABILITY)
+    #data.generate_couriers(NB_COURIERS, full_avail=FULL_AVAILABILITY)
 
     pattern_generation_time=time.time()
 
@@ -301,6 +300,10 @@ def execute_arguments(args):
         mv=model.v_cost
         me=model.e_cost
         mnwc=model.nb_working_couriers
+        max_tour_l = model.max_tour_l
+        min_tour_l = model.min_tour_l
+        average_tour_l = model.average_tour_l
+        
         data_list+=[per_day_time, per_day_obj, per_day_fix_cost, per_day_var_cost, per_day_ext_cost, repair_obj,
                 epsilon_tolerance, obj_tolerance, ti.TOTAL_TIME, ti.TIME_DEFINING_MASTER,
                     ti.TOTAL_TIME_REACHING_TOLERANCE, ti.TOTAL_TIME_BB, model.solve_details.gap,
