@@ -300,18 +300,23 @@ def execute_arguments(args):
         mv=model_cplex.v_cost
         me=model_cplex.e_cost
         mnwc = model_cplex.nb_working_couriers
-        # max_tour_l = model_cplex.max_tour_l
-        # min_tour_l = model_cplex.min_tour_l
-        # average_tour_l = model_cplex.average_tour_l
+        max_tour_l = model_cplex.max_tour_l
+        min_tour_l = model_cplex.min_tour_l
+        average_tour_l = model_cplex.average_tour_l
+        min_do = model_cplex.min_do
+        max_do = model_cplex.max_do
+        average_do = model_cplex.average_do
+        min_rt = model_cplex.min_rt
+        max_rt = model_cplex.max_rt
 
-        max_tour_l = 0
-        min_tour_l = 0
-        average_tour_l = 0
+        # max_tour_l = 0
+        # min_tour_l = 0
+        # average_tour_l = 0
 
         data_list+=[per_day_time, per_day_obj, per_day_fix_cost, per_day_var_cost, per_day_ext_cost, repair_obj,
                 epsilon_tolerance, obj_tolerance, ti.TOTAL_TIME, ti.TIME_DEFINING_MASTER,
                     ti.TOTAL_TIME_REACHING_TOLERANCE, ti.TOTAL_TIME_BB, model_cplex.solve_details.gap,
-                    mov, mf, mv, me, mnwc, max_tour_l, min_tour_l, average_tour_l]
+                    mov, mf, mv, me, mnwc, max_tour_l, min_tour_l, average_tour_l, min_do, max_do, average_do, min_rt, max_rt]
 
         del model_cplex
         # mean value problem solved + recourse problem with mean value first stage decisions
@@ -478,20 +483,16 @@ if __name__ == "__main__":
         NB_COURIERS = row["nb_drivers"] + 2
 
     # WEEKLY WORKING RULES TO CONSIDER
-    #todo: Check this because the values are different when checking if a tour is feasible or not
-    if args.full_patterns or args.price_patterns:
-        min_shift_length = 6
-        max_shift_length = 8
-        SHIFT_GAP = 2
-        AVAILABILITIES_DURATION = [NB_TIME_PERIODS]
-        FULL_AVAILABILITY=True
-        MIN_WORKING_HOURS = 32
-        MAX_WORKING_HOURS = 40
-
+    min_shift_length = args.minsl
+    max_shift_length = args.maxsl
+    SHIFT_GAP = args.shiftgap
+    AVAILABILITIES_DURATION = [NB_TIME_PERIODS]
+    FULL_AVAILABILITY=True
+    MIN_WORKING_HOURS = 32
+    MAX_WORKING_HOURS = 40
 
     #Build the shifts
     id_shift = 0
-    delay = 3
     for l in range(min_shift_length, max_shift_length + 1, SHIFT_GAP):
         for t in range(0, NB_TIME_PERIODS-(l-1), SHIFT_GAP):
 
@@ -511,10 +512,5 @@ if __name__ == "__main__":
 
     #data.add_shift(idShift=-1, idShiftString="Day off", cost=0, workTime=0, maxHeight=0, shift=[0] * NB_TIME_PERIODS,
                    #startPeriod=0, endPeriod=0, timesZero=0, timesOne=0, fixed=0, min_duration=0, max_duration=0, tws=0, twl=0)
-
-    #print("Number of od-pairs:", len(data.od_pairs), " number of shifts: ", len(data.shifts))
-
-    #exit(1)
-
     execute_arguments(args)
 

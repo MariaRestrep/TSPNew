@@ -1,2 +1,2 @@
 vehicle_id,vehicleType,maxWeightCapacity,maxSpeed,vehicleWearCost,pickupCost,deliveryCost
-0, Car,5,30,15,2.5,1.5
+0, Car,5,30,15,1.5,1.5

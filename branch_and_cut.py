@@ -85,7 +85,7 @@ def define_master(param):
 
     model.iter = 0
 
-    relax_x_variables = False
+    relax_x_variables = True
 
     # sets
     model.days = set(range(len(DAYS)))
@@ -99,22 +99,6 @@ def define_master(param):
     param.x_idx = [(c, d, s) for c in param.C for d in model.days for s in model.shifts]
     param.y_idx = [(c, d, i, p) for c in param.C for d in param.D for i in param.I for p in param.P]
     param.theta_idx = [(d, i, w, p) for d in param.D for i in param.I for w in param.Omega_i_d[d][i] for p in param.P]
-
-    v_idx = [(c, d, i, w, p) for c in param.C for d in param.D for i in param.I for w in param.Omega_i_d[d][i] for p in
-             param.P]
-    e_idx = [(d, i, w, p) for d in param.D for i in param.I for w in param.Omega_i_d[d][i] for p in param.P]
-
-    model.v = model.integer_var_dict(v_idx, name="V")
-    model.e = model.continuous_var_dict(e_idx, name="E")
-
-    v = model.v
-    e = model.e
-
-    for var in model.iter_variables():
-        var_type = var.name[0]
-        if var_type == "V": var.type = "V"
-        if var_type == "E": var.type = "E"
-
 
     #print("Defining Master variables")
     if relax_x_variables:
@@ -314,21 +298,6 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     problem = define_master(param)
     ti.end_defining()
 
-    # fix the values (bounds) of the first stage variables (used to compute the VSS from a mean value solution)
-    if fix_first_stage:
-        if first_stage_x is None or first_stage_y is None:
-            #print("First stage values are not valid, fix first stage ignored")
-            raise Exception("Invalid First stage values ")
-        else:
-            for var in problem.iter_variables():
-                if var.type == "X":
-                    c,t=var.get_key()
-                    var.lb=var.ub = first_stage_x[(c, t)]
-                if var.type == "Y":
-                    c, d, i, p= var.get_key()
-                    var.lb=var.ub = first_stage_y[(c, d, i, p)]
-            #print("First stage variables have been fixed")
-
     problem.x_sol={}
     problem.iter = 0
 
@@ -347,6 +316,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     ti.start_first_phase()
 
     init_y_core = True
+    #exit(1)
 
     # solve the master problem
     problem.solve(log_output=False)
@@ -357,7 +327,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     #TODO: Check the convergence of the method (how does thelower bound increases)
 
     while (rec_upper - rec_lower)/rec_upper > tolerance:
-        #print("Gap {}".format((rec_upper - rec_lower)/rec_upper))
+        #print("********************Gap {}".format((rec_upper - rec_lower)/rec_upper))
 
         # get the solution of the master
         x, y, theta = master_solution(problem)
@@ -385,7 +355,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         #print("Stop generating cuts ({} cuts generated)".format(nb_cuts))
 
         problem.solve(log_output=False)
-        #print("Relaxation solved with solution value", problem.objective_value)
+        #print("Relaxation solved with solution value***************", problem.objective_value)
 
         problem.iter += 1
 
@@ -491,7 +461,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         problem.min_tour_l = 0
         problem.average_tour_l = 0
 
-    print("*************************** Solution ***************************")
+    #print("*************************** Solution ***************************")
 
     x_sol=[0]*len(param.C)
     for c in param.C:
@@ -513,20 +483,29 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
             # if var.solution_value>0:
             #     print(c, d, s, var.solution_value)
 
-
-
     #check for min rest time
     cost_shifts=0
     min_tour_l = len(param.D) * 10
     max_tour_l = 0
     average_tour_l = 0.0
 
+    average_do = 0
+    min_do = len(param.D)
+    max_do = 0
+
+
+    min_rt = 24
+    max_rt = 0
+
     print("Shift allocation:")
     for c in param.C:
         lenght_tour = 0
+        rest_time = 0
+        days_off = 0
         print("Employee: ", c, end='[ ')
         for d in param.D:
             enter = False
+            shift_before = True
             for s in range(len(param.data.shifts)):
                 #print("shift", s, "day", d)
                 if (x_sol[c][d][s] > 0):
@@ -535,11 +514,34 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
                     print(s, end=',')
                     lenght_tour += param.data.shifts[s].workTime
                     cost_shifts += param.data.shifts[s].cost
+                    if d > 0 and shift_before:
+
+                        rest_time = (24 - end) + param.data.shifts[s].startPeriod
+
+                        # print("rest time", rest_time)
+
+                        end = param.data.shifts[s].endPeriod
+
+                        if (rest_time < min_rt):
+                            min_rt = rest_time
+
+                        if (rest_time > max_rt):
+                            max_rt = rest_time
+                    else:
+                        end = param.data.shifts[s].endPeriod
+                    shift_before = True
             if enter == False:
                 print("r", end=',')
+                days_off += 1
+                shift_before = False
+
+
         print("] lenght tour: ", lenght_tour)
 
+        #print("rest time ", min_rt, max_rt)
+
         average_tour_l+=lenght_tour
+        average_do += days_off
 
         if(lenght_tour < min_tour_l):
             min_tour_l = lenght_tour
@@ -547,13 +549,25 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         if (lenght_tour > max_tour_l):
             max_tour_l = lenght_tour
 
-    average_tour_l = average_tour_l/len(param.C)
+        if (days_off < min_do):
+            min_do = days_off
 
-    print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l)
+        if (days_off > max_do):
+            max_do = days_off
+
+    average_tour_l = average_tour_l/len(param.C)
+    average_do = average_do / len(param.C)
+
+    print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l, min_do, max_do, average_do)
 
     problem.max_tour_l = max_tour_l
     problem.min_tour_l = min_tour_l
     problem.average_tour_l = average_tour_l
+    problem.min_do = min_do
+    problem.max_do = max_do
+    problem.average_do = average_do
+    problem.min_rt = min_rt
+    problem.max_rt = max_rt
 
     problem.nb_working_couriers = 0
 
