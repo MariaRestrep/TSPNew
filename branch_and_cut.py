@@ -497,12 +497,12 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     min_rt = 24
     max_rt = 0
 
-    print("Shift allocation:")
+    # print("Shift allocation:")
     for c in param.C:
         lenght_tour = 0
         rest_time = 0
         days_off = 0
-        print("Employee: ", c, end='[ ')
+        # print("Employee: ", c, end='[ ')
         for d in param.D:
             enter = False
             shift_before = True
@@ -511,7 +511,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
                 if (x_sol[c][d][s] > 0):
                     enter = True
                     #print("employee ", c, " lenght of shift ", param.data.shifts[s].workTime, " shift: ", s, " day: ", d)
-                    print(s, end=',')
+                    # print(s, end=',')
                     lenght_tour += param.data.shifts[s].workTime
                     cost_shifts += param.data.shifts[s].cost
                     if d > 0 and shift_before:
@@ -531,12 +531,12 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
                         end = param.data.shifts[s].endPeriod
                     shift_before = True
             if enter == False:
-                print("r", end=',')
+                # print("r", end=',')
                 days_off += 1
                 shift_before = False
 
 
-        print("] lenght tour: ", lenght_tour)
+        # print("] lenght tour: ", lenght_tour)
 
         #print("rest time ", min_rt, max_rt)
 
@@ -558,7 +558,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     average_tour_l = average_tour_l/len(param.C)
     average_do = average_do / len(param.C)
 
-    print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l, min_do, max_do, average_do)
+    # print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l, min_do, max_do, average_do)
 
     problem.max_tour_l = max_tour_l
     problem.min_tour_l = min_tour_l
