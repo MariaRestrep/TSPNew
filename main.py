@@ -480,7 +480,7 @@ if __name__ == "__main__":
     data_employee = pd.read_csv(employee_file)
 
     for index, row in data_employee.iterrows():
-        NB_COURIERS = row["nb_drivers"] + 2
+        NB_COURIERS = row["nb_drivers"] + int(row["nb_drivers"] * 0.5)
 
     # WEEKLY WORKING RULES TO CONSIDER
     min_shift_length = args.minsl

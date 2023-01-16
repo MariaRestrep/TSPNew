@@ -50,13 +50,13 @@ export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
 
 #SBATCH --mail-user=simon.thevenin@imt-atlantique.fr
 
-def CreateJob(nb_packages, distribution, version):
-    qsub_filename = "./Jobs/job_%s_%s_%s" % (nb_packages, distribution, version)
+def CreateJob(nb_packages, distribution, version, shiftG):
+    qsub_filename = "./Jobs/job_%s_%s_%s_%s" % (nb_packages, distribution, version, shiftG)
     qsub_file = open(qsub_filename, 'w+')
     CreatHeader(qsub_file , qsub_filename)
     qsub_file.write("""
-srun python main.py %s %s %s --full_patterns -t 3600 > /home/LS2N/thevenin-s/log/output-${SLURM_JOB_ID}.txt 
-""" % (nb_packages, distribution, version))
+srun python main.py %s %s %s --full_patterns -t 3600  -minsl 6 -maxsl 10 -shiftgap %s> /home/LS2N/thevenin-s/log/output-${SLURM_JOB_ID}.txt 
+""" % (nb_packages, distribution, version, shiftG))
 
     return qsub_filename
 
@@ -66,9 +66,11 @@ if __name__ == "__main__":
 # 
 #     Distribution = ["-n", "-u", "-g"]
     
-    Packages = [ 50 ]# "EMP"]# "ZINB"]
+    Packages = [ 50, 100, 200 ]# "EMP"]# "ZINB"]
 
     Distribution = ["-u"]
+    
+    sgap = [1, 2, 4]
 
     filenewname = "runtestOpt.sh"
     filenew = open(filenewname, 'w')
@@ -79,7 +81,8 @@ if __name__ == "__main__":
     
     for p in Packages:
     	for d in Distribution:
-    		for v in range(1):
-    			jobname = CreateJob(p, d, v)
-    			filenew.write("sbatch %s \n" % (jobname))
+    		for v in range(10):
+    			for shiftG in sgap:
+    				jobname = CreateJob(p, d, v, shiftG)
+    				filenew.write("sbatch %s \n" % (jobname))
 				
