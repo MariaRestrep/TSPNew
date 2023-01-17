@@ -55,7 +55,7 @@ def CreateJob(nb_packages, distribution, version, shiftG):
     qsub_file = open(qsub_filename, 'w+')
     CreatHeader(qsub_file , qsub_filename)
     qsub_file.write("""
-srun python main.py %s %s %s --full_patterns -t 3600  -minsl 6 -maxsl 10 -shiftgap %s> /home/LS2N/thevenin-s/log/output-${SLURM_JOB_ID}.txt 
+srun python main.py %s %s %s --full_patterns -t 3600  -minsl 6 -maxsl 10 -shiftgap %s > /home/LS2N/thevenin-s/log/output-${SLURM_JOB_ID}.txt 
 """ % (nb_packages, distribution, version, shiftG))
 
     return qsub_filename
