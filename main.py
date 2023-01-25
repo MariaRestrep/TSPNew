@@ -326,7 +326,7 @@ def execute_arguments(args):
 
 
     if not args.no_exp:
-        data_file = current_bench_dir + "results_" + str(args.instance_number) + ".txt"
+        data_file=current_bench_dir+"results_"+str(args.instance_number)+"_"+str(args.minsl)+"_"+str(args.maxsl)+"_"+str(args.shiftgap)+".txt"
         #print("exporting!!!!!!!!!", data_file)
         export_data_string(data_file, data_list)
 
