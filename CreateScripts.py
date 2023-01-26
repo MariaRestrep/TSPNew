@@ -24,7 +24,7 @@ def CreatHeaderNantes(file, filename):
 #SBATCH --mem 10000
 #
 # Temps de presence du job
-#SBATCH --time=2:00:00
+#SBATCH --time=5:00:00
 #
 # Adresse mel de l'utilisateur
 #
