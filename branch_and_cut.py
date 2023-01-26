@@ -398,14 +398,15 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     problem.parameters.mip.tolerances.mipgap.set(obj_tolerance)
     problem.parameters.mip.tolerances.absmipgap.set(abs_obj_tolerance)
 
-    use_param=False # use selected parameters
+    use_param=True # use selected parameters
 
     # parameters
     #TODO: Check this
     if use_param:
         problem.parameters.mip.cuts.gomory=2
-        integrality_tolerance = 1e-04
-        problem.parameters.mip.tolerances.integrality = integrality_tolerance
+        integrality_tolerance = 0.01
+        #problem.parameters.mip.tolerances.integrality = integrality_tolerance
+        problem.parameters.mip.tolerances.mipgap = integrality_tolerance
         problem.parameters.emphasis.mip = 4 # generate gomory cuts aggressively
         problem.parameters.mip.cuts.mircut = 2 # generate rounding cuts aggressively
         problem.parameters.mip.strategy.nodeselect = 1 # node select after backtrack (0:DFS, 1:BoundS, 2:EstimateS, 3:AEst)
