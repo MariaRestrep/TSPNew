@@ -498,15 +498,17 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     min_rt = 24
     max_rt = 0
 
+
     # print("Shift allocation:")
     for c in param.C:
+        shift_before = False
         lenght_tour = 0
         rest_time = 0
         days_off = 0
         # print("Employee: ", c, end='[ ')
         for d in param.D:
             enter = False
-            shift_before = True
+
             for s in range(len(param.data.shifts)):
                 #print("shift", s, "day", d)
                 if (x_sol[c][d][s] > 0):
@@ -519,7 +521,8 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
 
                         rest_time = (24 - end) + param.data.shifts[s].startPeriod
 
-                        # print("rest time", rest_time)
+                        # if rest_time == 25:
+                        #     print("rest time", rest_time, d, end, param.data.shifts[s].startPeriod)
 
                         end = param.data.shifts[s].endPeriod
 
@@ -530,14 +533,15 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
                             max_rt = rest_time
                     else:
                         end = param.data.shifts[s].endPeriod
+
                     shift_before = True
             if enter == False:
                 # print("r", end=',')
                 days_off += 1
                 shift_before = False
 
-
-        # print("] lenght tour: ", lenght_tour)
+                # shift_before = False
+        # print"] lenght tour: ", lenght_tour)
 
         #print("rest time ", min_rt, max_rt)
 
