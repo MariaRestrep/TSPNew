@@ -191,7 +191,7 @@ def decompose_costs(param, problem):
             fixed_cost+=var.solution_value * param.data.shifts[s].cost
         if var.type=="Y":
             c, d, i, p = var.get_key()
-            problem.y[(c, d, i, p)]=var.solution_value
+            problem.y[(c, d, i, p)]=var.solution_value #HERE!!!!!
         if var.type=="Theta":
             theta_cost+=var.solution_value
 
@@ -442,7 +442,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
             #print(e)
             print(traceback.format_exc())
     try:
-        print("Objective:", problem.objective_value)
+        print("Objective daily problem:", problem.objective_value)
     except:
         print("Problem did not solved successfully")
 
@@ -465,24 +465,143 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     #print("*************************** Solution ***************************")
 
     x_sol=[0]*len(param.C)
+    possible_shifts = [0] * len(param.D)
+    y_sol = [0] * len(param.C)
     for c in param.C:
         x_sol[c] = [0] * len(param.D)
+        y_sol[c] = [0] * len(param.D)
+
         for d in param.D:
             x_sol[c][d] = [0] * len(param.data.shifts)
+            y_sol[c][d] = [0] * len(param.I)
+            possible_shifts[d] = []
+            for i in param.I:
+                y_sol[c][d][i] = [0] * len(param.P)
 
-    # for c in param.C:
-    #     for d in param.D:
-    #         for s in range(len(param.data.shifts)):
-    #             #print(c,d,s)
-    #             x_sol[c][d][s] = problem.x[c, d, s].solution_value
-    #             print(c, d, s, problem.x[c, d, s].solution_value, x_sol[c][d][s])
 
     for var in problem.iter_variables():
         if var.type == "X":
             c, d, s = var.get_key()
             x_sol[c][d][s] = var.solution_value
-            # if var.solution_value>0:
-            #     print(c, d, s, var.solution_value)
+            if var.solution_value>0: possible_shifts[d].append(s)
+        else:
+           if var.type == "Y":
+                c, d, i, p = var.get_key()
+                y_sol[c][d][i][p] = var.solution_value
+
+
+
+    #param.data.shifts[s].cost
+    #For the heuristic: use the solution of x and y
+    #Just use the shifts selected (the solution for x)
+    #by adding the max working time and max number of shifts
+
+    #define the second stage models and use y as a parameter, minimize the expected recourse cost
+
+    model_heuristic = Model("heuristic")
+
+    # define the variables
+    x_idx_h = [(c, d, s) for c in param.C for d in param.D for s in range(len(possible_shifts[d]))]  # these are the children of the root node in the grammar
+    y_idx_h = [(c, d, i, p) for c in param.C for d in param.D for i in param.I for p in param.P]
+    v_idx_h = [(c, d, i, w, p) for c in param.C for d in param.D for i in param.I for w in param.Omega_i_d[d][i] for p in
+             param.P]
+    e_idx_h = [(d, i, w, p) for d in param.D for i in param.I for w in param.Omega_i_d[d][i] for p in param.P]
+
+    model_heuristic.x = model_heuristic.binary_var_dict(x_idx_h, name="X")
+    model_heuristic.y = model_heuristic.binary_var_dict(y_idx_h, name="Y")
+    model_heuristic.v = model_heuristic.continuous_var_dict(v_idx_h, name="V")
+    model_heuristic.e = model_heuristic.continuous_var_dict(e_idx_h, name="E")
+
+    x_h = model_heuristic.x
+    y_h = model_heuristic.y
+    v_h = model_heuristic.v
+    e_h = model_heuristic.e
+
+    for var in model_heuristic.iter_variables():
+        var_type = var.name[0]
+        if var_type == "X": var.type = "X"
+        if var_type == "Y": var.type = "Y"
+        if var_type == "V": var.type = "V"
+        if var_type == "E": var.type = "E"
+
+
+    ### CONSTRAINTS ###
+    for c in param.C:
+        model_heuristic.add_constraint(model_heuristic.sum(model_heuristic.sum
+                                                           (param.data.shifts[possible_shifts[d][s]].workTime * x_h[c, d, s] for s in range(len(possible_shifts[d])))for d in param.D) <= max_pattern_length)
+        model_heuristic.add_constraint(model_heuristic.sum(model_heuristic.sum(x_h[c, d, s] for s in range(len(possible_shifts[d]))) for d in param.D) <= 6)
+        model_heuristic.add_constraint(model_heuristic.sum(
+            model_heuristic.sum(x_h[c, d, s] for s in range(len(possible_shifts[d]))) for d in param.D) >= 2)
+        for d in param.D: #at most one shift per day
+            model_heuristic.add_constraint(model_heuristic.sum(x_h[c, d, s] for s in range(len(possible_shifts[d]))) <= 1)
+
+
+    #use each shift at most once
+    for d in param.D:
+        for s in range(len(possible_shifts[d])):
+            model_heuristic.add_constraint(model_heuristic.sum(x_h[c, d, s] for c in param.C) <= 1)
+
+    # one o-d pair per time period (if working)
+    for c in param.C:
+        for d in param.D:
+            for t in param.I:
+                model_heuristic.add_constraint(model_heuristic.sum(y_h[c, d, t, p] for p in param.P) ==
+                                               model_heuristic.sum(param.data.shifts[possible_shifts[d][s]].shift[t] * x_h[c, d, s] for s in range(len(possible_shifts[d]))))
+
+
+    # constraint (5) constraint limiting the number of packages that an internal courier can deliver
+    for c in param.C:
+        for d in param.D:
+            for i in param.I:
+                for w in param.Omega_i_d[d][i]:
+                    for p in param.P:
+                        model_heuristic.add_constraint((v_h[(c, d, i, w, p)] - (param.mu[(c, d, i, w, p)] * y_h[(c, d, i, p)])) <= 0)
+
+    # constraint (6) constraint for the demand satisfaction
+    for d in param.D:
+        for i in param.I:
+            for w in param.Omega_i_d[d][i]:
+                for p in param.P:
+                    model_heuristic.add_constraint(model_heuristic.sum(v_h[(c, d, i, w, p)] for c in param.C) + e_h[(d, i, w, p)] == param.d[(d, i, w, p)])
+
+    ### OBJECTIVE ###
+
+    # ### OBJECTIVE ###
+    model_heuristic.fixed_cost = model_heuristic.sum(
+        param.data.shifts[possible_shifts[d][s]].cost * x_h[c, d, s] for c in param.C for d in param.D for s in range(len(possible_shifts[d])))
+
+    #model_heuristic.fixed_cost = model_heuristic.sum(x_h[c, d, s] for c in param.C for d in param.d for s in range(len(possible_shifts[d])))
+
+
+    model_heuristic.scenario_cost = model_heuristic.sum(model_heuristic.sum(model_heuristic.sum(param.proba[(d, i, w)] * (
+            model_heuristic.sum(model_heuristic.sum(param.l[(c, i, p)] * v_h[(c, d, i, w, p)] for p in param.P) for c in param.C)
+            + model_heuristic.sum(param.c[(i, p)] * e_h[(d, i, w, p)] for p in param.P)) for w in param.Omega_i_d[d][i]) for i in param.I) for d in param.D)
+
+    model_heuristic.minimize(model_heuristic.fixed_cost + model_heuristic.scenario_cost)
+
+    # set Tolerance
+    # model_heuristic.parameters.mip.tolerances.mipgap.set(obj_tolerance)
+    # model_heuristic.parameters.mip.tolerances.absmipgap.set(abs_obj_tolerance)
+    integrality_tolerance = 0.01
+    model_heuristic.parameters.mip.tolerances.mipgap = integrality_tolerance
+    model_heuristic.set_time_limit(600)
+    model_heuristic.solve(log_output=True)
+
+    try:
+        print("Objective heuristic problem:", model_heuristic.objective_value)
+    except:
+        print("Heuristic Problem did not solve successfully")
+
+    x_sol_h = [0] * len(param.C)
+    for c in param.C:
+        x_sol_h[c] = [0] * len(param.D)
+        for d in param.D:
+            x_sol_h[c][d] = [0] * len(param.data.shifts)
+
+    for var in model_heuristic.iter_variables():
+        if var.type == "X":
+            c, d, s = var.get_key()
+            x_sol_h[c][d][s] = var.solution_value
 
     #check for min rest time
     cost_shifts=0
@@ -494,10 +613,8 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     min_do = len(param.D)
     max_do = 0
 
-
     min_rt = 24
     max_rt = 0
-
 
     # print("Shift allocation:")
     for c in param.C:
@@ -508,23 +625,22 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
         # print("Employee: ", c, end='[ ')
         for d in param.D:
             enter = False
-
-            for s in range(len(param.data.shifts)):
+            for s in range(len(possible_shifts[d])):
                 #print("shift", s, "day", d)
-                if (x_sol[c][d][s] > 0):
+                if (x_sol_h[c][d][s] > 0):
                     enter = True
-                    #print("employee ", c, " lenght of shift ", param.data.shifts[s].workTime, " shift: ", s, " day: ", d)
+                    print("employee ", c, " lenght of shift ", param.data.shifts[possible_shifts[d][s]].workTime, " shift: ", s, " day: ", d)
                     # print(s, end=',')
-                    lenght_tour += param.data.shifts[s].workTime
-                    cost_shifts += param.data.shifts[s].cost
+                    lenght_tour += param.data.shifts[possible_shifts[d][s]].workTime
+                    cost_shifts += param.data.shifts[possible_shifts[d][s]].cost
                     if d > 0 and shift_before:
 
-                        rest_time = (24 - end) + param.data.shifts[s].startPeriod
+                        rest_time = (24 - end) + param.data.shifts[possible_shifts[d][s]].startPeriod
 
                         # if rest_time == 25:
                         #     print("rest time", rest_time, d, end, param.data.shifts[s].startPeriod)
 
-                        end = param.data.shifts[s].endPeriod
+                        end = param.data.shifts[possible_shifts[d][s]].endPeriod
 
                         if (rest_time < min_rt):
                             min_rt = rest_time
@@ -532,7 +648,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
                         if (rest_time > max_rt):
                             max_rt = rest_time
                     else:
-                        end = param.data.shifts[s].endPeriod
+                        end = param.data.shifts[possible_shifts[d][s]].endPeriod
 
                     shift_before = True
             if enter == False:
@@ -563,7 +679,7 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
     average_tour_l = average_tour_l/len(param.C)
     average_do = average_do / len(param.C)
 
-    # print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l, min_do, max_do, average_do)
+    print("shift allocation cost: ", cost_shifts, min_tour_l, max_tour_l, average_tour_l, min_do, max_do, average_do)
 
     problem.max_tour_l = max_tour_l
     problem.min_tour_l = min_tour_l
@@ -576,7 +692,8 @@ def solve_bac(param, log_output=False, timeout=1800, obj_tolerance=1e-03, abs_ob
 
     problem.nb_working_couriers = 0
 
-    #ti.print_ti()
+    # ti.print_ti()
+
     problem.timer=ti
     return problem
 
